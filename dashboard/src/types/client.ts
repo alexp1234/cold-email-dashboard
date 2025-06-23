@@ -10,4 +10,3 @@ interface DailyMetrics {
     emails_sent: number
     opportunities: number
 }
-  

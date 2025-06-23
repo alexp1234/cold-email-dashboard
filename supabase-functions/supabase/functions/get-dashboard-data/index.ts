@@ -17,6 +17,19 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 }
 
+function getDateRange(start: string, end: string): string[] {
+  const result: string[] = [];
+  const current = new Date(start);
+  const endDate = new Date(end);
+
+  while (current <= endDate) {
+    result.push(current.toISOString().slice(0, 10));
+    current.setDate(current.getDate() + 1);
+  }
+
+  return result;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
@@ -26,14 +39,21 @@ serve(async (req) => {
   const workspaceId = url.searchParams.get("workspace_id");
   const startDate = url.searchParams.get("start_date") || "2025-01-01";
   const endDate = url.searchParams.get("end_date") || new Date().toISOString().slice(0, 10);
+  const allDatesInRange = getDateRange(startDate, endDate);
 
   // 1. Fetch workspaces
   const { data: workspaces, error: wsError } = await supabase
     .from("workspaces")
     .select("id, name")
+    .eq("is_active", true)
     .match(workspaceId ? { id: workspaceId } : {});
 
-  if (wsError) return new Response(JSON.stringify({ error: wsError.message }), { status: 500, headers: corsHeaders });
+  if (wsError) {
+    return new Response(JSON.stringify({ error: wsError.message }), {
+      status: 500,
+      headers: corsHeaders,
+    });
+  }
 
   const clients: Client[] = [];
 
@@ -45,6 +65,7 @@ serve(async (req) => {
       .from("mailboxes")
       .select("limit")
       .eq("workspace_id", wsId);
+
     const daily_capacity = mailboxes?.reduce((acc, m) => acc + (m.limit ?? 0), 0) ?? 0;
 
     // 3. Campaigns with delays
@@ -52,6 +73,7 @@ serve(async (req) => {
       .from("campaigns")
       .select("id, delays")
       .eq("workspace_id", wsId);
+
     const campaignIds = campaigns?.map((c) => c.id) ?? [];
 
     if (campaignIds.length === 0) {
@@ -65,24 +87,36 @@ serve(async (req) => {
       .select("campaign_id, leads_count")
       .in("campaign_id", campaignIds);
 
-    const analyticsByCampaign = Object.fromEntries(analytics?.map((a) => [a.campaign_id, a.leads_count]) ?? []);
+    const analyticsByCampaign = Object.fromEntries(
+      analytics?.map((a) => [a.campaign_id, a.leads_count]) ?? []
+    );
 
-    // 5. Fetch total sent per campaign
+    // 5. Fetch total sent per campaign using sum()
     const { data: sentData } = await supabase
       .from("daily_campaign_analytics")
       .select("campaign_id, sum(sent) as total_sent")
       .in("campaign_id", campaignIds)
       .gte("date", startDate)
-      .lte("date", endDate)
-      .group("campaign_id");
+      .lte("date", endDate);
 
-    const sentByCampaign = Object.fromEntries(sentData?.map((r) => [r.campaign_id, Number(r.total_sent)]) ?? []);
+    const sentByCampaign = Object.fromEntries(
+      sentData?.map((r) => [r.campaign_id, Number(r.total_sent)]) ?? []
+    );
 
     // 6. Compute pending_emails
     let pending_emails = 0;
     for (const c of campaigns) {
       const leadsCount = analyticsByCampaign[c.id] ?? 0;
-      const delaysArr: any[] = Array.isArray(c.delays) ? c.delays : JSON.parse(c.delays ?? "[]");
+
+      let delaysArr: any[] = [];
+      try {
+        delaysArr = Array.isArray(c.delays)
+          ? c.delays
+          : JSON.parse(c.delays ?? "[]");
+      } catch {
+        delaysArr = [];
+      }
+
       const stepCount = delaysArr.length;
       const expected = leadsCount * stepCount;
       const actual = sentByCampaign[c.id] ?? 0;
@@ -119,16 +153,21 @@ serve(async (req) => {
       oppsByDate[dateKey] = (oppsByDate[dateKey] || 0) + 1;
     }
 
-    const allDates = [...new Set([...Object.keys(sentByDate), ...Object.keys(oppsByDate)])].sort();
     const daily_metrics: Record<string, DailyMetrics> = {};
-    for (const dt of allDates) {
+    for (const dt of allDatesInRange) {
       daily_metrics[dt] = {
         emails_sent: sentByDate[dt] ?? 0,
         opportunities: oppsByDate[dt] ?? 0,
       };
     }
 
-    clients.push({ name: ws.name, daily_capacity, pending_emails, runway_days, daily_metrics });
+    clients.push({
+      name: ws.name,
+      daily_capacity,
+      pending_emails,
+      runway_days,
+      daily_metrics,
+    });
   }
 
   return new Response(JSON.stringify(clients), {

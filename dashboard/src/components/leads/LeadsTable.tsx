@@ -56,7 +56,7 @@ export const LeadsTable = ({ leads, page, onPageChange }: LeadsTableProps) => {
                             </TableCell>
                             <TableCell>
                                 <MuiLink
-                                    href={`https://app.instantly.ai/leads/${lead.id}`}
+                                    href={`https://app.instantly.ai/app/unibox?thread_search=${lead.email}&selected_wks=${lead.workspace_id}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                 >

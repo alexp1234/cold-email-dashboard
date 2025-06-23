@@ -6,4 +6,5 @@ export interface Lead {
     campaign: string;
     date_added: string;
     client: string;
+    workspace_id: string;
 }

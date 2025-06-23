@@ -11,7 +11,11 @@ export function useWorkspaces() {
   useEffect(() => {
     setLoading(true);
     fetchWorkspaces()
-      .then(setWorkspaces)
+      .then((allWorkspaces) => {
+        // Filter here for only active workspaces
+        const activeWorkspaces = allWorkspaces.filter(ws => ws.is_active === true);
+        setWorkspaces(activeWorkspaces);
+      })
       .catch(setError)
       .finally(() => setLoading(false));
   }, []);

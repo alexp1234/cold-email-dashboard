@@ -1,11 +1,13 @@
 import {
-  Box, Typography, TextField, Select, MenuItem,
+  Box, Typography, Tooltip, Select, MenuItem,
   FormControl, InputLabel, Table, TableHead, TableRow,
   TableCell, TableBody, Paper, styled, useTheme, CircularProgress
 } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { useClientMetrics } from '../hooks/useClientMetrics';
 import { useWorkspaces } from '../hooks/useWorkspaces';
+import { useWorkspacesMissingMailboxes } from '../hooks/useWorkspacesMissingMailboxes';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 
 const Container = styled(Box)(({ theme }) => ({
   maxWidth: 1200,
@@ -34,6 +36,7 @@ const Card = styled(Paper)(() => ({
 export default function Dashboard() {
   const theme = useTheme();
   const { workspaces, loading: loadingWorkspaces } = useWorkspaces();
+  const { workspacesWithMissingMailboxes } = useWorkspacesMissingMailboxes();
 
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | undefined>(undefined);
   const [view, setView] = useState<'daily' | 'weekly' | 'monthly'>('daily');
@@ -89,6 +92,12 @@ export default function Dashboard() {
       },
     };
   }, []);
+
+  const missingMap = useMemo(() => {
+    return Object.fromEntries(
+      workspacesWithMissingMailboxes.map(w => [w.workspace_name, w.missing_mailboxes])
+    );
+  }, [workspacesWithMissingMailboxes]);
 
   const currentRange = dateRanges[view][selectedRange];
   const { data: clients, loading, error } = useClientMetrics({
@@ -198,7 +207,21 @@ export default function Dashboard() {
                           display: 'inline-block',
                         }}
                       >
+                     <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
                         {client.daily_capacity}
+                        {missingMap[client.name]?.length > 0 && (
+                        <Tooltip
+                          title={
+                            <Box sx={{ whiteSpace: 'pre-line' }}>
+                              {missingMap[client.name].join('\n')}
+                            </Box>
+                          }
+                          arrow
+                        >
+                          <WarningAmberIcon fontSize="small" color="warning" />
+                        </Tooltip>
+                      )}
+                      </Box>
                       </Box>
                     </TableCell>
                     <TableCell>{client.pending_emails}</TableCell>
@@ -213,8 +236,16 @@ export default function Dashboard() {
                     {dates.map((d) => (
                       <TableCell key={d}>
                         <Box sx={{ textAlign: 'center' }}>
-                          {client.daily_metrics[d]?.emails_sent ?? 0} /{' '}
-                          {client.daily_metrics[d]?.opportunities ?? 0}
+                          <TableRow>
+                            <TableCell>
+                              {client.daily_metrics[d]?.emails_sent ?? 0}
+                            </TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell sx={{ color: theme.palette.success.main, fontWeight: 'bold' }}>
+                            {client.daily_metrics[d]?.opportunities ?? 0}
+                            </TableCell>
+                          </TableRow>         
                         </Box>
                       </TableCell>
                     ))}

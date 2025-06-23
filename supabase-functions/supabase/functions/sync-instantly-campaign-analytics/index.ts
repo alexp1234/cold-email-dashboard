@@ -20,33 +20,33 @@ const workspaceRepository = new Repository<Workspace>(TableName.Workspaces, supa
 const campaignAnalyticsRepository = new Repository<CampaignAnalytics>(TableName.CampaignAnalytics, supabaseClient);
 
 const instantlyClient = new InstantlyClient();
+const toISOStringDate = (date: Date) => date.toISOString().split('T')[0];
 
 serve(async (req) => {
   const now = new Date();
-  const toISOStringDate = (date: Date) => date.toISOString().split('T')[0];
-  const start = toISOStringDate(new Date(now.getFullYear(), now.getMonth(), 1));
-  const end = toISOStringDate(new Date(now.getFullYear(), now.getMonth() + 1, 0));
-
-  const workspaces: Workspace[] = await workspaceRepository.findAll();
-  const syncPromises = workspaces.map(async (ws) => {
-    if (!ws.api_key) {
-      console.log('No API key found for workspace', ws.name);
-      return;
-    }
-
-    try {
-      const instantlyAnalyticsData = await instantlyClient.getCampaignAnalytics(ws.api_key, start, end);
-      const mappedEntities = Mapper.mapAnalyticsResponseToAnalytics(instantlyAnalyticsData, ws.id, now.getMonth() + 1, 
-        now.getFullYear()); 
-      await campaignAnalyticsRepository.upsert(mappedEntities);
-    } catch (err) {
-      console.error(`Failed to sync analytics for workspace ${ws.name}:`, err);
-    }
-  });
-
-  await Promise.allSettled(syncPromises);
+  let start = toISOStringDate(new Date(now.getFullYear(), now.getMonth(), 1));
+  let end = toISOStringDate(new Date(now.getFullYear(), now.getMonth() + 1, 0));
   
-  return new Response(JSON.stringify({ status: "Synced Campaign Analytics" }), {
+  const { workspaceId, start: reqStart, end: reqEnd } = await req.json();
+  start = reqStart ?? start;
+  end = reqEnd ?? end;
+
+  const ws: Workspace | null = await workspaceRepository.findOne({id: workspaceId});
+  if (!ws?.api_key) {
+    console.log('workspace or api key not found.');
+    return;
+  }
+
+  try {
+    const instantlyAnalyticsData = await instantlyClient.getCampaignAnalytics(ws.api_key, start, end);
+    const mappedEntities = Mapper.mapAnalyticsResponseToAnalytics(instantlyAnalyticsData, ws.id, now.getMonth() + 1, 
+      now.getFullYear()); 
+    await campaignAnalyticsRepository.upsert(mappedEntities);
+  } catch (err) {
+    console.error(`Failed to sync analytics for workspace ${ws.name}:`, err);
+  }
+  
+  return new Response(JSON.stringify({ status: "Synced Campaign Analytics for " + ws?.name }), {
     headers: { "Content-Type": "application/json" },
   });
 })

@@ -27,14 +27,18 @@ const stepAnalyticsRepository = new Repository<CampaignStep>(TableName.CampaignS
 const dailyAnalyticsRepository = new Repository<DailyCampaignAnalytics>(TableName.DailyCampaignAnalytics, supabaseClient);
 const instantlyClient = new InstantlyClient();
 
-const now = new Date();
 const toISOStringDate = (date: Date) => date.toISOString().split('T')[0];
-const start = toISOStringDate(new Date(now.getFullYear(), now.getMonth(), 1));
-const end = toISOStringDate(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+
 
 serve(async (req) => {
   try {
-    const { workspaceId } = await req.json();
+    const now = new Date();
+    let start = toISOStringDate(new Date(now.getFullYear(), now.getMonth(), 1));
+    let end = toISOStringDate(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+    
+    const { workspaceId, start: reqStart, end: reqEnd } = await req.json();
+    start = reqStart ?? start;
+    end = reqEnd ?? end;
 
     if (!workspaceId) {
       return new Response(JSON.stringify({ error: "Missing workspace_id in request body" }), {
@@ -60,8 +64,6 @@ serve(async (req) => {
     } else {
       console.log('no mailboxes found, skipping.');
     }
-
-    // TODO: Flag mailboxes in DB if they are no longer found
 
     const campaignResponses = await instantlyClient.getCampaigns(ws.api_key);
 
