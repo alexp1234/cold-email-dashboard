@@ -1,0 +1,53 @@
+export interface ListLeadsApiResponse {
+    items: Array<{
+      id: string;
+      timestamp_created: string;
+      timestamp_updated: string;
+      organization: string;
+      campaign: string;
+      status: number; // 1 is active
+      email: string;
+      personalization?: string;
+      website?: string;
+      last_name?: string;
+      first_name?: string;
+      company_name?: string;
+      phone?: string;
+      email_open_count: number;
+      email_reply_count: number;
+      email_click_count: number;
+      company_domain?: string;
+      status_summary?: Record<string, unknown>;
+      payload: unknown | null;
+      status_summary_subseq?: Record<string, unknown>;
+      last_step_from?: string;
+      last_step_id?: string;
+      last_step_timestamp_executed?: string;
+      email_opened_step?: number;
+      email_opened_variant?: number;
+      email_replied_step?: number;
+      email_replied_variant?: number;
+      email_clicked_step?: number;
+      email_clicked_variant?: number;
+      lt_interest_status: number;
+      subsequence_id?: string;
+      verification_status?: number;
+      pl_value_lead?: string;
+      timestamp_added_subsequence?: string;
+      timestamp_last_contact?: string;
+      timestamp_last_open?: string;
+      timestamp_last_reply?: string;
+      timestamp_last_interest_change?: string;
+      timestamp_last_click?: string;
+      enrichment_status?: number;
+      list_id?: string;
+      last_contacted_from?: string;
+      uploaded_by_user?: string;
+      upload_method?: string;
+      assigned_to?: string;
+      is_website_visitor?: boolean;
+      timestamp_last_touch?: string;
+      esp_code?: number;
+    }>;
+    next_starting_after?: string;
+}
