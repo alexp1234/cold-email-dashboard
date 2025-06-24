@@ -1,6 +1,6 @@
 export enum TableName {
     Leads = 'leads',
-    Mailbox = 'mailboxes',
+    CampaignMailbox = 'campaign_mailboxes',
     Campaigns = 'campaigns',
     Workspaces = 'workspaces',
     CampaignAnalytics = 'campaign_analytics',

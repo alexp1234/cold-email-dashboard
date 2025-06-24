@@ -217,4 +217,45 @@ export class InstantlyClient {
 
       return await response.json() as ListDailyCmapaignApiResponse[]
   }
+
+  async getCampaignMailboxes(
+     apiKey: string,
+     tags: string[]) {
+      let results: ListAccountApiResponse[] = [];
+    let startingAfter: string | undefined = undefined;
+
+    while (true) {
+      const instantlyApiUrl = `${this.BASE_API_URL}/accounts?limit=${this.LIMIT}&tag_ids=${tags.join(',')}`;
+      
+      const url = startingAfter ? `${instantlyApiUrl}&starting_after=${startingAfter}` 
+        : instantlyApiUrl;
+
+      const res = await fetch(url.toString(), {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        }
+      });
+
+      if (!res.ok) {
+        throw new Error(`Failed to fetch accounts: ${res.status} ${res.statusText}`);
+      }
+
+      const response: ListAccountApiResponse = await res.json();
+      
+      if (response) {
+        results.push(response);
+      } else {
+        console.log('Failed to retrieve accounts');
+      }
+
+      if (!response.next_starting_after) {
+        break;
+      }
+
+      startingAfter = response.next_starting_after;
+    }
+
+    return results;
+  }
 }

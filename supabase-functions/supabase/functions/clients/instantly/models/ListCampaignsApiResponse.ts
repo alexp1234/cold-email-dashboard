@@ -20,6 +20,7 @@ export interface ListCampaignsApiResponse {
       timing?: Record<string, unknown>;
       days: Record<string, boolean>;
     }>;
+    email_tag_list: string[]
   }>;
   next_starting_after?: string;
 }

@@ -36,10 +36,8 @@ serve(async (req) => {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
-  const url = new URL(req.url);
-  const workspaceId = url.searchParams.get("workspace_id");
-  const startDate = url.searchParams.get("start_date") || "2025-01-01";
-  const endDate = url.searchParams.get("end_date") || new Date().toISOString().slice(0, 10);
+  const { workspaceId, start: startDate, end: endDate } = await req.json();
+
   const allDates = getDateRange(startDate, endDate);
 
   const { data: workspaces, error } = await supabase
@@ -57,19 +55,18 @@ serve(async (req) => {
 
   for (const ws of workspaces) {
     const wsId = ws.id;
-
-    const { data: mailboxes } = await supabase
-      .from("mailboxes")
-      .select("limit")
-      .eq("workspace_id", wsId);
-    const daily_capacity = mailboxes?.reduce((acc, m) => acc + (m.limit ?? 0), 0) ?? 0;
-
     const { data: campaigns } = await supabase
       .from("campaigns")
       .select("id, delays")
       .eq("workspace_id", wsId);
     const campaignIds = campaigns?.map((c) => c.id) ?? [];
     if (!campaignIds.length) continue;
+
+    const { data: mailboxes, error } = await supabase
+      .from("campaign_mailboxes")
+      .select("limit")
+      .in("campaign_id", campaignIds);
+    const daily_capacity = mailboxes?.reduce((acc, m) => acc + (m.limit ?? 0), 0) ?? 0;
 
     const { data: analytics } = await supabase
       .from("campaign_analytics")

@@ -8,4 +8,5 @@ export interface Campaign {
     workspace_id: string;
     schedule_days: number[];
     delays: number[];
+    email_tag_list: string[];
 }

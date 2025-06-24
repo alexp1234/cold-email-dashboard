@@ -6,24 +6,21 @@ import { ListDailyCmapaignApiResponse } from "../clients/instantly/models/ListDa
 import { ListLeadsApiResponse } from "../clients/instantly/models/ListLeadsApiResponse.ts";
 import { Campaign } from "../data/models/Campaign.ts";
 import { CampaignAnalytics } from "../data/models/CampaignAnalytics.ts";
+import { CampaignMailboxes } from "../data/models/CampaignMailbox.ts";
 import { CampaignStep } from "../data/models/CampaignStep.ts";
 import { DailyCampaignAnalytics } from "../data/models/DailyCampaignAnalytics.ts";
 import { Lead } from "../data/models/Lead.ts";
-import { Mailbox } from "../data/models/Mailbox.ts";
 
 export class Mapper {
-    static mapAccountsToMailboxes(
+    static mapAccountsToCampaignMailboxes(
         responses: ListAccountApiResponse[],
-        workspaceId: string
-      ): Mailbox[] {
+        campaign_id: string,
+      ): CampaignMailboxes[] {
         return responses.flatMap(res =>
           res.items.map(item => ({
-            workspace_id: workspaceId,
+            campaign_id: campaign_id,
             email: item.email,
-            name: `${item.first_name} ${item.last_name}`.trim(),
-            limit: item.daily_limit,
-            health_score: String(item.stat_warmup_score) + '%',
-            missing_in_instantly: false
+            limit: item.daily_limit
           }))
         );
     }
@@ -65,6 +62,7 @@ export class Mapper {
               workspace_id: workspaceId,
               schedule_days: scheduleDays,
               delays: delays,
+              email_tag_list: item.email_tag_list
             };
           })
         );

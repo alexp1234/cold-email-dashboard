@@ -26,7 +26,7 @@ async function getWorkspaces() {
 }
 
 async function callEdgeFunctions(workspaceId) {
-  const endpoints = ['sync-instantly-data', 'sync-instantly-campaign-analytics', 'sync-instantly-leads'];
+  const endpoints = ['sync-instantly-data', 'sync-mailbox-data', 'sync-instantly-campaign-analytics', 'sync-instantly-leads', 'get-dashboard-data'];
   const start = process.env.START_DATE ?? null;
   const end = process.env.END_DATE ?? null;
 

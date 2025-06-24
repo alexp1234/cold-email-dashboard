@@ -268,7 +268,7 @@ export default function Dashboard() {
                         <Box sx={{ textAlign: 'center' }}>
                           {!hideSends && <TableRow>
                             <TableCell sx={
-                              client.daily_metrics[d]?.emails_sent ?? 0 < client.daily_capacity ? {
+                              client.daily_metrics[d]?.emails_sent < client.daily_capacity ? {
                                 color: 'red', fontWeight: 'bold'
                               } : {}
                             }>

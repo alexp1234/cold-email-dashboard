@@ -1,7 +1,6 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { Repository } from "../data/Repository.ts";
 import { TableName } from "../data/TableName.ts";
-import { Mailbox } from "../data/models/Mailbox.ts";
 import { Workspace } from "../data/models/Workspace.ts";
 import { InstantlyClient } from "../clients/instantly/InstantlyClient.ts";
 import { ListAccountApiResponse } from "../clients/instantly/models/ListAccountApiResponse.ts";
@@ -21,7 +20,6 @@ const supabaseClient = createClient(
 );
 
 const workspaceRepository = new Repository<Workspace>(TableName.Workspaces, supabaseClient);
-const mailboxRepository = new Repository<Mailbox>(TableName.Mailbox, supabaseClient);
 const campaignRepository = new Repository<Campaign>(TableName.Campaigns, supabaseClient);
 const stepAnalyticsRepository = new Repository<CampaignStep>(TableName.CampaignStep, supabaseClient);
 const dailyAnalyticsRepository = new Repository<DailyCampaignAnalytics>(TableName.DailyCampaignAnalytics, supabaseClient);
@@ -52,17 +50,6 @@ serve(async (req) => {
     if (!ws?.api_key) {
       console.log('No Api key found for workspace ', ws?.name);
       return;
-    }
-
-    const mailboxResponses: ListAccountApiResponse[] =
-      await instantlyClient.getAccounts(ws.api_key);
-
-    if (mailboxResponses && mailboxResponses.length > 0) {
-      const mailboxEntities = Mapper.mapAccountsToMailboxes(mailboxResponses, ws.id);
-      await mailboxRepository.upsert(mailboxEntities);
-      await mailboxRepository.flagNotFoundMailboxes(ws.id, mailboxEntities.map(m => m.email))
-    } else {
-      console.log('no mailboxes found, skipping.');
     }
 
     const campaignResponses = await instantlyClient.getCampaigns(ws.api_key);
