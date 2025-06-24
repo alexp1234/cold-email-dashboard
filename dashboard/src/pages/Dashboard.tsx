@@ -1,7 +1,9 @@
 import {
   Box, Typography, Tooltip, Select, MenuItem,
   FormControl, InputLabel, Table, TableHead, TableRow,
-  TableCell, TableBody, Paper, styled, useTheme, CircularProgress
+  TableCell, TableBody, Paper, styled, useTheme, CircularProgress,
+  FormControlLabel,
+  Checkbox
 } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
 import { useClientMetrics } from '../hooks/useClientMetrics';
@@ -38,8 +40,9 @@ export default function Dashboard() {
   const { workspaces, loading: loadingWorkspaces } = useWorkspaces();
   const { workspacesWithMissingMailboxes } = useWorkspacesMissingMailboxes();
 
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | undefined>(undefined);
+  const [ selectedWorkspaceId ] = useState<string | undefined>(undefined);
   const [view, setView] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  const [hideSends, setHideSends] = useState(false);
   const [selectedRange, setSelectedRange] = useState<string>('last7');
 
   const dateRanges = useMemo(() => {
@@ -124,7 +127,17 @@ export default function Dashboard() {
         </Typography>
 
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-
+        <FormControlLabel
+            labelPlacement='start'
+            label="Hide sends"
+            control={
+              <Checkbox
+                checked={hideSends}
+                onChange={(e) => setHideSends(e.target.checked)}
+              />
+            }
+            
+          />
           <FormControl size="small">
             <InputLabel>View</InputLabel>
             <Select
@@ -179,13 +192,30 @@ export default function Dashboard() {
                   <TableCell rowSpan={2}>Pending Emails</TableCell>
                   <TableCell rowSpan={2}>Runway (Days)</TableCell>
                   <TableCell align="center" colSpan={dates.length}>
-                    Emails Sent / Opportunities
+                     {!hideSends && <>Emails Sent /</>} Opportunities
                   </TableCell>
                 </TableRow>
                 <TableRow>
-                  {dates.map((date) => (
-                    <TableCell key={date}>{date}</TableCell>
-                  ))}
+                {dates.map((dateStr) => {
+                  const [year, month, day] = dateStr.split('-').map(Number);
+                  const date = new Date(year, month - 1, day); // Local midnight date
+
+                  const ordinal =
+                    day % 10 === 1 && day !== 11
+                      ? 'st'
+                      : day % 10 === 2 && day !== 12
+                      ? 'nd'
+                      : day % 10 === 3 && day !== 13
+                      ? 'rd'
+                      : 'th';
+
+                  const weekday = date.toLocaleString('default', { weekday: 'long' });
+                  const monthName = date.toLocaleString('default', { month: 'long' });
+
+                  const formatted = `${weekday}, ${monthName} ${day}${ordinal}`;
+
+                  return <TableCell key={dateStr}>{formatted}</TableCell>;
+                })}
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -236,13 +266,19 @@ export default function Dashboard() {
                     {dates.map((d) => (
                       <TableCell key={d}>
                         <Box sx={{ textAlign: 'center' }}>
-                          <TableRow>
-                            <TableCell>
+                          {!hideSends && <TableRow>
+                            <TableCell sx={
+                              client.daily_metrics[d]?.emails_sent ?? 0 < client.daily_capacity ? {
+                                color: 'red', fontWeight: 'bold'
+                              } : {}
+                            }>
                               {client.daily_metrics[d]?.emails_sent ?? 0}
                             </TableCell>
-                          </TableRow>
+                          </TableRow>}
                           <TableRow>
-                            <TableCell sx={{ color: theme.palette.success.main, fontWeight: 'bold' }}>
+                            <TableCell sx={ 
+                              client.daily_metrics[d]?.opportunities > 0 ? 
+                            { color: theme.palette.success.main, fontWeight: 'bold' } : {} }>
                             {client.daily_metrics[d]?.opportunities ?? 0}
                             </TableCell>
                           </TableRow>         

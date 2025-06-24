@@ -52,8 +52,6 @@ async function runJob() {
     for (const ws of workspaces) {
       console.log(`▶️ Processing workspace ${ws.id}`);
       await callEdgeFunctions(ws.id);
-
-      await sleep(intervalMs);
     }
     console.log('🎉 All done');
   } catch (error) {
