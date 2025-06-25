@@ -5,6 +5,7 @@ import { ListCampaignAnalyticsApiResponse } from "./models/ListCampaignAnalytics
 import { ListCampaignsApiResponse } from "./models/ListCampaignsApiResponse.ts";
 import { ListDailyCmapaignApiResponse } from "./models/ListDailyCampaignAnalyticsResponse.ts";
 import { ListLeadsApiResponse } from "./models/ListLeadsApiResponse.ts";
+import { ListTagsApiResponse } from "./models/ListTagsApiResponse.ts";
 
 
 export class InstantlyClient { 
@@ -92,6 +93,41 @@ export class InstantlyClient {
         console.error('Error fetching campaigns:', error);
         throw new Error('Failed to retrieve campaigns');
       }
+  }
+
+  async getTags(apiKey: string) : Promise<ListTagsApiResponse[]> {
+    try {
+      const instantlyApiUrl = `${this.BASE_API_URL}/custom-tags`;
+      let allTagsResponse: ListTagsApiResponse[] = [];
+      let startingAfter: string | undefined = undefined;
+      
+        let hasMore = true;
+
+        while (hasMore) {  
+          const response = await fetch(instantlyApiUrl, {
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json'
+            }
+          });
+    
+          if (!response.ok) {
+            throw new Error(`Failed to fetch leads: ${response.status}`);
+          }
+  
+          const data = await response.json() as ListTagsApiResponse;
+          console.log('response received with after ', data.next_starting_after);
+  
+          allTagsResponse.push(data);
+          startingAfter = data.next_starting_after;
+          hasMore = !!startingAfter;
+        }
+
+      return allTagsResponse
+    } catch (error) {
+      console.error('Error fetching tags:', error);
+      throw new Error('Failed to retrieve leads');
+    }
   }
 
   async getLeads(apiKey: string): Promise<ListLeadsApiResponse[]> {

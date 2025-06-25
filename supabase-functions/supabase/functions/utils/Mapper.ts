@@ -4,18 +4,20 @@ import { ListCampaignAnalyticsApiResponse } from "../clients/instantly/models/Li
 import { ListCampaignsApiResponse } from "../clients/instantly/models/ListCampaignsApiResponse.ts";
 import { ListDailyCmapaignApiResponse } from "../clients/instantly/models/ListDailyCampaignAnalyticsResponse.ts";
 import { ListLeadsApiResponse } from "../clients/instantly/models/ListLeadsApiResponse.ts";
+import { ListTagsApiResponse } from "../clients/instantly/models/ListTagsApiResponse.ts";
 import { Campaign } from "../data/models/Campaign.ts";
 import { CampaignAnalytics } from "../data/models/CampaignAnalytics.ts";
-import { CampaignMailboxes } from "../data/models/CampaignMailbox.ts";
+import { CampaignMailbox} from "../data/models/CampaignMailbox.ts";
 import { CampaignStep } from "../data/models/CampaignStep.ts";
 import { DailyCampaignAnalytics } from "../data/models/DailyCampaignAnalytics.ts";
 import { Lead } from "../data/models/Lead.ts";
+import { Tag } from "../data/models/Tag.ts";
 
 export class Mapper {
     static mapAccountsToCampaignMailboxes(
         responses: ListAccountApiResponse[],
         campaign_id: string,
-      ): CampaignMailboxes[] {
+      ): CampaignMailbox[] {
         return responses.flatMap(res =>
           res.items.map(item => ({
             campaign_id: campaign_id,
@@ -130,5 +132,15 @@ export class Mapper {
             date,
             sent,
           }));
+    }
+
+    static mapTagsResponseToTags(responses: ListTagsApiResponse[])
+    : Tag[] {
+      return responses.flatMap((response) =>
+        response.items.map((item) => ({
+          id: item.id,
+          name: item.label
+        }))
+      );
     }
 }

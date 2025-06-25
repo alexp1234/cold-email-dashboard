@@ -1,5 +1,4 @@
 export interface CampaignMailbox {
     campaign_id: string;
-    email: string;
-    limit: number;
+    mailbox_id: string;
 }
